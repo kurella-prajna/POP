@@ -33,11 +33,44 @@ async function saveDeck() {
   await chrome.storage.local.set({ deck });
 }
 
-async function bumpStats(correct) {
+function isoDate(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+function daysBetween(isoA, isoB) {
+  const a = new Date(isoA + "T00:00:00Z");
+  const b = new Date(isoB + "T00:00:00Z");
+  return Math.round((b - a) / 86400000);
+}
+
+// Bumping the streak counts ANY engagement — ad-triggered or a manual
+// "study now" session — since POP usage naturally depends on whether
+// someone happened to watch a video with ads that day.
+function bumpStreak(stats) {
+  if (!stats.streak) stats.streak = { count: 0, lastDate: null };
+  const today = isoDate(new Date());
+  if (stats.streak.lastDate === today) return; // already active today
+  const diff = stats.streak.lastDate ? daysBetween(stats.streak.lastDate, today) : null;
+  stats.streak.count = diff === 1 ? stats.streak.count + 1 : 1;
+  stats.streak.lastDate = today;
+}
+
+let adBreakCountedThisSession = false;
+
+async function bumpStats(correct, fromAdBreak) {
   const stored = await chrome.storage.local.get("stats");
-  const stats = stored.stats || { reviews: 0, correct: 0 };
+  const stats = stored.stats || { reviews: 0, correct: 0, streak: { count: 0, lastDate: null }, adBreaksRepped: 0 };
   stats.reviews += 1;
   if (correct) stats.correct += 1;
+  bumpStreak(stats);
+
+  // Lifetime "ad breaks turned into reps" counter — counts once per ad
+  // break (not per card), and never decreases. It's a pure achievement stat.
+  if (fromAdBreak && !adBreakCountedThisSession) {
+    stats.adBreaksRepped = (stats.adBreaksRepped || 0) + 1;
+    adBreakCountedThisSession = true;
+  }
+
   await chrome.storage.local.set({ stats });
 }
 
@@ -62,7 +95,7 @@ function gradeCard(card, correct) {
   }
   card.lastSeen = Date.now();
   saveDeck();
-  bumpStats(correct);
+  bumpStats(correct, adActive);
 }
 
 // ---------- overlay UI ----------
@@ -141,6 +174,7 @@ function onAdStateChange(showing) {
   if (showing === adActive) return;
   adActive = showing;
   if (showing) {
+    adBreakCountedThisSession = false;
     if (!overlayEl) overlayEl = buildOverlay();
     showNewCard();
   } else {
@@ -185,6 +219,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     loadDeck().then(() => {
       if (!overlayEl) overlayEl = buildOverlay();
       adActive = true;
+      adBreakCountedThisSession = false;
       showNewCard();
       // auto-hide after 15s like a short ad, unless a real ad state overrides it
       setTimeout(() => {
