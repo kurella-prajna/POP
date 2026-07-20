@@ -8,7 +8,10 @@ async function setDeck(deck) {
 }
 
 function isoDate(d) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function daysBetween(isoA, isoB) {
@@ -35,7 +38,7 @@ function displayStreak(stats) {
   if (!streak.lastDate) return { count: 0, atRisk: false };
   const today = isoDate(new Date());
   const diff = daysBetween(streak.lastDate, today);
-  if (diff === 0) return { count: streak.count, atRisk: false };
+  if (diff <= 0) return { count: streak.count, atRisk: false };
   if (diff === 1) return { count: streak.count, atRisk: true }; // one-day warning
   return { count: 0, atRisk: false }; // streak broken
 }
