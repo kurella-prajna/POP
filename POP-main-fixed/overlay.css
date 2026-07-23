@@ -1,0 +1,100 @@
+#abf-overlay {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999999;
+  display: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.abf-card {
+  width: 420px;
+  background: #14161a;
+  color: #f3f1ea;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 22px 22px 24px;
+  animation: abf-rise 0.22s ease-out;
+}
+
+@keyframes abf-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.abf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.abf-badge {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #e0a45a;
+  font-weight: 600;
+}
+
+.abf-close {
+  background: none;
+  border: none;
+  color: #8a8d94;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.abf-close:hover { color: #f3f1ea; }
+
+.abf-front {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-bottom: 14px;
+}
+
+.abf-back {
+  font-size: 17px;
+  line-height: 1.5;
+  color: #cfd2d8;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.abf-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.abf-btn {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.15s ease;
+}
+.abf-btn:hover { filter: brightness(1.1); }
+.abf-btn:active { transform: scale(0.97); }
+
+.abf-btn-primary {
+  background: #e0a45a;
+  color: #14161a;
+}
+
+.abf-btn-hit {
+  background: #4caf7d;
+  color: #0b1410;
+}
+
+.abf-btn-miss {
+  background: #3a3d44;
+  color: #f3f1ea;
+}
