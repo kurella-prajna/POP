@@ -15,6 +15,7 @@ let currentCard = null;
 let overlayEl = null;
 let playerEl = null;
 let observer = null;
+let pollTimer = null;
 let adActive = false;
 
 // ---------- storage ----------
@@ -170,18 +171,39 @@ function hideOverlay() {
 function isAdShowing(player) {
   if (!player) return false;
   const cls = player.className || "";
-  return cls.includes("ad-showing") || cls.includes("ad-interrupting");
+  if (cls.includes("ad-showing") || cls.includes("ad-interrupting")) return true;
+  // Fallbacks: some ad formats don't set those classes on the player itself,
+  // but always render one of these UI elements while an ad is active.
+  if (document.querySelector(".ytp-ad-player-overlay")) return true;
+  if (document.querySelector(".video-ads.ytp-ad-module .ytp-ad-text")) return true;
+  if (document.querySelector(".ytp-ad-skip-button, .ytp-ad-skip-button-modern")) return true;
+  if (document.querySelector(".ytp-ad-preview-container")) return true;
+  return false;
 }
 
+let hideTimer = null;
+
 function onAdStateChange(showing) {
-  if (showing === adActive) return;
-  adActive = showing;
   if (showing) {
+    // ad confirmed on: cancel any pending hide and show immediately
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+    if (adActive) return; // already showing, nothing to do
+    adActive = true;
     adBreakCountedThisSession = false;
     if (!overlayEl) overlayEl = buildOverlay();
     showNewCard();
   } else {
-    hideOverlay();
+    if (!adActive || hideTimer) return; // already hidden, or already waiting to hide
+    // Don't hide immediately — a multi-ad pod often has a brief gap between
+    // ads where the class briefly disappears before the next ad starts.
+    hideTimer = setTimeout(() => {
+      adActive = false;
+      hideTimer = null;
+      hideOverlay();
+    }, 700);
   }
 }
 
@@ -193,6 +215,13 @@ function attachObserver(player) {
   observer.observe(player, { attributes: true, attributeFilter: ["class"] });
   // check immediate state too
   onAdStateChange(isAdShowing(player));
+
+  // Polling safety net: some ad formats change the DOM in ways the observer
+  // above can miss (e.g. elements swapped outside the observed subtree).
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    onAdStateChange(isAdShowing(player));
+  }, 700);
 }
 
 function findPlayerAndAttach() {
